@@ -39,6 +39,12 @@ enum IAProvedor {
   openai
 }
 
+/// Como o playbook fecha: agenda uma reunião ou manda o link de cadastro.
+enum FechoTipo {
+  reuniao
+  link
+}
+
 enum MensagemDirecao {
   IN
   OUT
@@ -113,9 +119,54 @@ model Instancia {
 
   conversas Conversa[]
   iaConfig  IAConfig?
+  playbook  Playbook?
 
   @@unique([orgId, nome])
   @@index([orgId, status])
+}
+
+/// Roteiro de atendimento automático da instância: serviços/preços, objetivo,
+/// contexto do negócio e quais estágios entram. A IA usa isso para conversar.
+model Playbook {
+  id          String    @id @default(cuid())
+  instancia   Instancia @relation(fields: [instanciaId], references: [id], onDelete: Cascade)
+  instanciaId String    @unique
+  orgId       String
+
+  objetivo String?
+  /// Contexto do negócio (colado ou vindo de um PDF): valores, regras, diferenciais.
+  contexto String?
+
+  saudacaoAtiva        Boolean @default(true)
+  desenvolvimentoAtiva Boolean @default(true)
+  agendamentoAtiva     Boolean @default(true)
+
+  fecho            FechoTipo @default(reuniao)
+  /// Link de cadastro usado quando `fecho = link` (ou como reforço na reunião).
+  linkFecho        String?
+  /// Trava: máximo de mensagens automáticas por conversa antes de parar sozinho.
+  maxMensagensAuto Int       @default(8)
+
+  atualizadoEm DateTime @default(now()) @updatedAt
+  criadoEm     DateTime @default(now())
+
+  servicos PlaybookServico[]
+
+  @@index([orgId])
+}
+
+model PlaybookServico {
+  id         String   @id @default(cuid())
+  playbook   Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  playbookId String
+
+  nome      String
+  /// Texto livre: "a partir de R$299", "R$ 1.200/mês".
+  preco     String  @default("")
+  descricao String?
+  ordem     Int     @default(0)
+
+  @@index([playbookId])
 }
 
 /// Config da IA por instância (aba Automático). A chave da API fica só aqui, no
@@ -183,6 +234,14 @@ model Conversa {
   ultimaMensagemEm      DateTime          @default(now())
   ultimaMensagemPreview String            @default("")
   criadoEm              DateTime          @default(now())
+
+  /// Estado do atendente automático nesta conversa.
+  /// `iaAtiva` vira false quando um humano assume ou o lead pede uma pessoa.
+  iaAtiva     Boolean @default(true)
+  iaEstagio   String  @default("saudacao")
+  iaMensagens Int     @default(0)
+  /// Interesse medido pela IA, 0 a 100, a partir do que o lead escreve.
+  iaInteresse Int     @default(0)
 
   mensagens    Mensagem[]
   atendimentos AtendimentoRegistro[]

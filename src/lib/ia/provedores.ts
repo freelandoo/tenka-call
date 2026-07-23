@@ -7,8 +7,8 @@
  */
 
 import type { IAProvedor } from "@prisma/client";
-import { listarModelosClaude } from "@/lib/ia/claude";
-import { listarModelosOpenai } from "@/lib/ia/openai";
+import { gerarRespostaClaude, listarModelosClaude } from "@/lib/ia/claude";
+import { gerarRespostaOpenai, listarModelosOpenai } from "@/lib/ia/openai";
 
 const TIMEOUT_MS = 15_000;
 
@@ -59,6 +59,32 @@ export async function buscarJson(
   }
 }
 
+/** POST com timeout, para gerar resposta. Mesmo tratamento de rede do GET. */
+export async function postJson(
+  url: string,
+  headers: Record<string, string>,
+  corpo: unknown,
+): Promise<{ status: number; data: unknown }> {
+  const controle = new AbortController();
+  const timer = setTimeout(() => controle.abort(), TIMEOUT_MS);
+  try {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify(corpo),
+      signal: controle.signal,
+      cache: "no-store",
+    });
+    const data = await r.json().catch(() => ({}));
+    return { status: r.status, data };
+  } catch (e) {
+    const motivo = e instanceof Error && e.name === "AbortError" ? "tempo esgotado" : "sem resposta";
+    throw new IAError(`Provedor de IA indisponível (${motivo}).`);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Traduz o status HTTP do provedor em mensagem clara para a tela. */
 export function erroDeStatus(status: number): IAError {
   if (status === 401 || status === 403) {
@@ -81,6 +107,31 @@ export function listarModelos(provedor: IAProvedor, apiKey: string): Promise<Mod
       return listarModelosClaude(chave);
     case "openai":
       return listarModelosOpenai(chave);
+    default:
+      throw new IAError("Provedor sem adaptador.", 400);
+  }
+}
+
+/** Uma fala da conversa, no formato neutro que cada adaptador traduz. */
+export interface Turno {
+  papel: "user" | "assistant";
+  texto: string;
+}
+
+export interface PedidoResposta {
+  apiKey: string;
+  modelo: string;
+  system: string;
+  turnos: Turno[];
+}
+
+/** Gera a próxima fala do atendente. Lança `IAError` em falha do provedor. */
+export function gerarResposta(provedor: IAProvedor, pedido: PedidoResposta): Promise<string> {
+  switch (provedor) {
+    case "claude":
+      return gerarRespostaClaude(pedido);
+    case "openai":
+      return gerarRespostaOpenai(pedido);
     default:
       throw new IAError("Provedor sem adaptador.", 400);
   }

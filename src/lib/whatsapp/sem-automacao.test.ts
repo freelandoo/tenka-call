@@ -5,17 +5,21 @@ import { expect, test } from "vitest";
 /**
  * Teste de arquitetura, não de comportamento.
  *
- * A promessa do produto é que ninguém é respondido automaticamente. Garantir
- * isso com um caso de uso seria frágil (um caminho novo escaparia); garantir com
- * a topologia dos imports é definitivo: se a ingestão não alcança o módulo que
- * envia, nenhum evento recebido pode virar mensagem enviada.
+ * DECISÃO DE PRODUTO (2026-07-23): passou a existir atendimento automático. O
+ * envio a partir do webhook agora é permitido, mas confinado a UM módulo com
+ * travas — `autoresposta.ts`. A garantia mudou de "ninguém envia" para:
  *
- * Se este teste falhar, alguém ligou os dois lados. Isso pode ser legítimo — mas
- * é uma decisão de produto, e tem que ser tomada de propósito.
+ *   1. O GRAVADOR (`ingest.ts`) continua sem alcançar o envio — nenhum caminho
+ *      de gravação pode, sozinho, virar mensagem enviada.
+ *   2. A partir do webhook, o envio só é alcançável via `autoresposta.ts`.
+ *
+ * Se (1) falhar, alguém ligou a gravação ao envio por fora do módulo cercado —
+ * isso tem que ser uma decisão consciente, não um acidente de import.
  */
 
 const RAIZ = resolve(__dirname, "../..");
 const MODULO_DE_ENVIO = "@/lib/whatsapp/evolution";
+const MODULO_AUTORESPOSTA = "@/lib/whatsapp/autoresposta";
 
 /** Caminho de import interno → arquivo em disco. */
 function arquivoDe(especificador: string): string | null {
@@ -44,14 +48,23 @@ function alcancaveis(entrada: string): Set<string> {
   return vistos;
 }
 
-test("a ingestão do webhook não alcança o módulo que envia mensagens", () => {
+test("o gravador (ingest) não alcança o módulo que envia mensagens", () => {
   const dependencias = alcancaveis(resolve(RAIZ, "lib/whatsapp/ingest.ts"));
   expect([...dependencias]).not.toContain(MODULO_DE_ENVIO);
 });
 
-test("o webhook em si também não alcança o envio", () => {
+test("a partir do webhook, o envio só é alcançável via autoresposta", () => {
   const dependencias = alcancaveis(resolve(RAIZ, "app/api/webhooks/whatsapp/route.ts"));
-  expect([...dependencias]).not.toContain(MODULO_DE_ENVIO);
+  // O envio é alcançável (existe atendimento automático)...
+  expect([...dependencias]).toContain(MODULO_DE_ENVIO);
+  // ...e passa pelo módulo cercado. Como o ingest não alcança o envio (teste
+  // acima) e a rota só importa ingest + autoresposta, o único caminho é este.
+  expect([...dependencias]).toContain(MODULO_AUTORESPOSTA);
+});
+
+test("autoresposta é quem importa o envio (o módulo cercado)", () => {
+  const dependencias = alcancaveis(resolve(RAIZ, "lib/whatsapp/autoresposta.ts"));
+  expect([...dependencias]).toContain(MODULO_DE_ENVIO);
 });
 
 test("o teste sabe detectar o vínculo (controle negativo)", () => {

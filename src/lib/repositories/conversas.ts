@@ -354,6 +354,53 @@ export async function classificarConversaRepo(
   return obterConversaRepo(orgId, conversa.id);
 }
 
+// ─── Estado do atendente automático ───────────────────────────────────────────
+
+/** Estado da IA numa conversa, achado pela instância + JID (caminho do webhook). */
+export function estadoIAConversaRepo(instanciaId: string, remoteJid: string) {
+  return prisma.conversa.findUnique({
+    where: { instanciaId_remoteJid: { instanciaId, remoteJid } },
+    select: {
+      id: true,
+      telefone: true,
+      iaAtiva: true,
+      iaEstagio: true,
+      iaMensagens: true,
+      iaInteresse: true,
+    },
+  });
+}
+
+/** Avança a IA depois de uma resposta: novo estágio, interesse e +1 mensagem. */
+export function avancarIAConversaRepo(
+  conversaId: string,
+  dados: { iaEstagio: string; iaInteresse: number },
+) {
+  return prisma.conversa.update({
+    where: { id: conversaId },
+    data: {
+      iaEstagio: dados.iaEstagio,
+      iaInteresse: dados.iaInteresse,
+      iaMensagens: { increment: 1 },
+    },
+  });
+}
+
+/** Só atualiza o interesse (quando a IA não respondeu, mas mediu o lead). */
+export function registrarInteresseRepo(conversaId: string, iaInteresse: number) {
+  return prisma.conversa.update({ where: { id: conversaId }, data: { iaInteresse } });
+}
+
+/**
+ * Desliga a IA nesta conversa — handoff para humano. `motivo` só documenta.
+ * Idempotente: chamar de novo não faz mal.
+ */
+export function pausarIAConversaRepo(conversaId: string) {
+  return prisma.conversa
+    .update({ where: { id: conversaId }, data: { iaAtiva: false } })
+    .catch(() => null);
+}
+
 export async function listarAtendimentosRepo(
   orgId: string,
   conversaId: string,
