@@ -34,6 +34,11 @@ enum LeadEstagio {
   convertido
 }
 
+enum IAProvedor {
+  claude
+  openai
+}
+
 enum MensagemDirecao {
   IN
   OUT
@@ -107,9 +112,31 @@ model Instancia {
   criadoEm          DateTime       @default(now())
 
   conversas Conversa[]
+  iaConfig  IAConfig?
 
   @@unique([orgId, nome])
   @@index([orgId, status])
+}
+
+/// Config da IA por instância (aba Automático). A chave da API fica só aqui, no
+/// servidor, e nunca volta para o navegador. `ativo` é a trava geral liga/desliga.
+model IAConfig {
+  id          String    @id @default(cuid())
+  instancia   Instancia @relation(fields: [instanciaId], references: [id], onDelete: Cascade)
+  instanciaId String    @unique
+  /// Redundante com a instância, mas escopa as buscas por empresa sem um join.
+  orgId       String
+
+  ativo    Boolean     @default(false)
+  provedor IAProvedor?
+  /// Segredo: só de escrita pela API, nunca serializado de volta ao cliente.
+  apiKey   String?
+  modelo   String?
+
+  atualizadoEm DateTime @default(now()) @updatedAt
+  criadoEm     DateTime @default(now())
+
+  @@index([orgId])
 }
 
 model Lead {
