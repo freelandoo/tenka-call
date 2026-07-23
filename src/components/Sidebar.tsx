@@ -7,6 +7,7 @@ import { SairBotao } from "@/components/SairBotao";
 
 const LINKS: { href: string; texto: string; papeis: Papel[] }[] = [
   { href: "/inbox", texto: "Inbox", papeis: ["ADMIN", "ATENDENTE"] },
+  { href: "/leads", texto: "Leads", papeis: ["ADMIN", "ATENDENTE"] },
   { href: "/instancias", texto: "Instâncias", papeis: ["ADMIN"] },
   { href: "/equipe", texto: "Equipe", papeis: ["ADMIN"] },
   { href: "/perfil", texto: "Perfil", papeis: ["ADMIN", "ATENDENTE"] },
