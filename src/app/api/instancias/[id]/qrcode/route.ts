@@ -4,7 +4,7 @@ import {
   atualizarStatusPorNomeTecnicoRepo,
   instanciaDaOrgRepo,
 } from "@/lib/repositories/instancias";
-import { conectar, configEvolution } from "@/lib/whatsapp/evolution";
+import { aplicarWebhook, conectar, configEvolution } from "@/lib/whatsapp/evolution";
 import { semConfig, tratarErro } from "@/lib/whatsapp/respostas";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +25,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (!instancia) return NextResponse.json({ erro: "instância não encontrada" }, { status: 404 });
 
   try {
+    // Reaplica o webhook a cada pareamento: cobre mudança de PUBLIC_APP_URL e
+    // instância criada fora do app. Tolerante a falha, não trava o QR.
+    await aplicarWebhook(cfg, instancia.evolutionInstance);
     const r = await conectar(cfg, instancia.evolutionInstance);
     await atualizarStatusPorNomeTecnicoRepo(
       instancia.evolutionInstance,
