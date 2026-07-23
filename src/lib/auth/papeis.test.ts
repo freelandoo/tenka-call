@@ -15,8 +15,8 @@ describe("papeis", () => {
     expect(podePapel("FAXINEIRO" as Papel, ["ADMIN", "ATENDENTE"])).toBe(false);
   });
 
-  it("manda cada papel para a sua rota inicial", () => {
-    expect(rotaInicial("ADMIN")).toBe("/equipe");
-    expect(rotaInicial("ATENDENTE")).toBe("/perfil");
+  it("manda os dois papéis para o inbox — é onde o trabalho acontece", () => {
+    expect(rotaInicial("ADMIN")).toBe("/inbox");
+    expect(rotaInicial("ATENDENTE")).toBe("/inbox");
   });
 });

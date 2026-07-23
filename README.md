@@ -30,6 +30,20 @@ npm run dev
 Login em `http://localhost:3000/login`. A senha do admin nasce provisória: o
 primeiro acesso cai em `/perfil` pedindo a troca.
 
+Para exercitar o WhatsApp de verdade, suba a Evolution junto
+(`docker compose up -d evolution`, porta 8080, chave `dev-evolution-key`) e crie
+uma instância em `/instancias`. O pareamento por QR funciona local; para a
+Evolution entregar o webhook em `localhost:3000` é preciso um túnel público
+(ngrok/cloudflared) em `PUBLIC_APP_URL`, ou testar o webhook direto por `curl`.
+
+## Telas
+
+- `/inbox` — conversas à esquerda, histórico à direita: responder, classificar e
+  registrar o atendimento. ADMIN e ATENDENTE.
+- `/instancias` — criar, parear por QR, ver status ao vivo e remover números. ADMIN.
+- `/equipe` — usuários da empresa. ADMIN.
+- `/perfil` — troca de senha.
+
 ## Testes
 
 ```bash
@@ -43,9 +57,10 @@ entre si — não aponte `DATABASE_URL` para um banco com dados que importam.
 
 - Design: [docs/superpowers/specs/2026-07-23-tenka-call-atendimento-design.md](docs/superpowers/specs/2026-07-23-tenka-call-atendimento-design.md)
 - Plano da Fase 1: [docs/superpowers/plans/2026-07-23-tenka-call-fase1-fundacao.md](docs/superpowers/plans/2026-07-23-tenka-call-fase1-fundacao.md)
+- Plano da Fase 2: [docs/superpowers/plans/2026-07-23-tenka-call-fase2-atendimento.md](docs/superpowers/plans/2026-07-23-tenka-call-fase2-atendimento.md)
 - Deploy: [DEPLOY.md](DEPLOY.md)
 
 ## Estado
 
-Fase 1 (fundação: banco, auth, equipe) concluída. Fase 2 (instâncias, ingestão,
-inbox, classificação) a seguir.
+Fase 1 (fundação: banco, auth, equipe) e Fase 2 (instâncias, ingestão, inbox,
+classificação) concluídas.

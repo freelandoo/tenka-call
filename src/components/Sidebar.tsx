@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 import type { Papel } from "@/lib/auth/papeis";
 import { SairBotao } from "@/components/SairBotao";
 
-/** Só telas que existem — a Fase 2 acrescenta Inbox e Instâncias. */
 const LINKS: { href: string; texto: string; papeis: Papel[] }[] = [
+  { href: "/inbox", texto: "Inbox", papeis: ["ADMIN", "ATENDENTE"] },
+  { href: "/instancias", texto: "Instâncias", papeis: ["ADMIN"] },
   { href: "/equipe", texto: "Equipe", papeis: ["ADMIN"] },
   { href: "/perfil", texto: "Perfil", papeis: ["ADMIN", "ATENDENTE"] },
 ];

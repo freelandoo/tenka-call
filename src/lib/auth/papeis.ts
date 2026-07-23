@@ -9,8 +9,8 @@ export function podePapel(papel: Papel, exigidos: Papel[]): boolean {
 
 /**
  * Onde cada papel cai ao entrar ou ao ser barrado de uma tela.
- * Na Fase 2 os dois passam a apontar para "/inbox".
+ * Os dois caem no inbox: atender é o trabalho, e ADMIN também atende.
  */
-export function rotaInicial(papel: Papel): string {
-  return papel === "ADMIN" ? "/equipe" : "/perfil";
+export function rotaInicial(_papel: Papel): string {
+  return "/inbox";
 }
