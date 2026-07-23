@@ -54,4 +54,9 @@ test("o webhook em si também não alcança o envio", () => {
   expect([...dependencias]).not.toContain(MODULO_DE_ENVIO);
 });
 
-test.todo("o teste sabe detectar o vínculo (controle negativo) — ativado na Task 9");
+test("o teste sabe detectar o vínculo (controle negativo)", () => {
+  // A rota de resposta manual importa o envio — se este caso não acusasse,
+  // os dois testes acima estariam passando por engano.
+  const dependencias = alcancaveis(resolve(RAIZ, "app/api/conversas/[id]/mensagens/route.ts"));
+  expect([...dependencias]).toContain(MODULO_DE_ENVIO);
+});

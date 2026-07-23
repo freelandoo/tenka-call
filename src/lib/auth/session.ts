@@ -24,7 +24,12 @@ export async function criarSessao(userId: string): Promise<void> {
 export async function usuarioAtual() {
   const id = (await cookies()).get(COOKIE)?.value;
   if (!id) return null;
-  const s = await prisma.session.findUnique({ where: { id }, include: { user: true } });
+  // A empresa vem junto: o slug dela entra no nome técnico das instâncias, e o
+  // nome aparece na barra lateral — sem uma segunda ida ao banco por requisição.
+  const s = await prisma.session.findUnique({
+    where: { id },
+    include: { user: { include: { org: { select: { slug: true, nome: true } } } } },
+  });
   if (!s || s.expiraEm < new Date()) return null;
   if (!s.user.ativo) return null;
   return s.user;
