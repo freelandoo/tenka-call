@@ -309,8 +309,11 @@ atrasa a leitura da mensagem.
 
 - `EVOLUTION_API_KEY`, `WHATSAPP_WEBHOOK_SECRET` e `DATABASE_URL` só no servidor;
   nunca em props de client component nem em `NEXT_PUBLIC_*`.
-- Senhas com Argon2id (`@node-rs/argon2`). Sessão em cookie `httpOnly`,
-  `secure`, `sameSite=lax`, assinada com `jose`.
+- Senhas com Argon2id (`@node-rs/argon2`). Sessão **opaca no banco**: o cookie
+  `httpOnly` / `secure` / `sameSite=lax` guarda só o id da linha `Session`, e a
+  cada requisição o servidor relê a sessão e o usuário. Não há JWT: desativar um
+  atendente derruba o acesso na hora, sem esperar token expirar, e não existe
+  segredo de assinatura para vazar ou rotacionar.
 - Criar/remover instância e gerir equipe: ADMIN. Ler/responder/classificar:
   ADMIN + ATENDENTE.
 - Evolution sem porta pública no Railway.
@@ -353,7 +356,6 @@ ingestão e do webhook e falha se algum deles alcançar `@/lib/whatsapp/evolutio
 
 ```
 DATABASE_URL=postgresql://…?schema=public
-SESSION_SECRET=                              # assinatura do cookie de sessão
 EVOLUTION_URL=http://evolution-api.railway.internal:8080
 EVOLUTION_API_KEY=                           # mesma chave do serviço evolution-api
 WHATSAPP_WEBHOOK_SECRET=                     # header x-webhook-secret
