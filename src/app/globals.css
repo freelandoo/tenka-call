@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --color-fundo: #0b0d10;
+  --color-superficie: #14181d;
+  --color-borda: #232a32;
+  --color-texto: #e7ecf1;
+  --color-fraco: #93a1b0;
+  --color-acento: #22d3ee;
+}
+
+html,
+body {
+  background: var(--color-fundo);
+  color: var(--color-texto);
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Rede de segurança: mesmo que uma animação escape do gsap.matchMedia,
+   quem pediu menos movimento não recebe movimento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ATENDENTE
+}
+
+enum WhatsappStatus {
+  DISCONNECTED
+  CONNECTING
+  CONNECTED
+}
+
+enum ConversaInteresse {
+  nao_classificado
+  com_interesse
+  sem_interesse
+  perdido
+  convertido
+}
+
+enum LeadEstagio {
+  novo
+  interesse
+  qualificado
+  perdido
+  convertido
+}
+
+enum MensagemDirecao {
+  IN
+  OUT
+}
+
+enum MensagemAutor {
+  LEAD
+  ATENDENTE
+}
+
+model Org {
+  id       String   @id @default(cuid())
+  slug     String   @unique
+  nome     String
+  criadoEm DateTime @default(now())
+
+  users        User[]
+  instancias   Instancia[]
+  leads        Lead[]
+  conversas    Conversa[]
+  atendimentos AtendimentoRegistro[]
+}
+
+model User {
+  id    String @id @default(cuid())
+  org   Org    @relation(fields: [orgId], references: [id])
+  orgId String
+
+  /// Único globalmente: a tela de login pede só login e senha, e a empresa vem do usuário.
+  login           String   @unique
+  email           String?  @unique
+  nome            String
+  passwordHash    String
+  role            Role     @default(ATENDENTE)
+  /// Desativar em vez de apagar preserva a trilha de quem fez o quê.
+  ativo           Boolean  @default(true)
+  /// Senha definida pelo admin — força a troca no primeiro acesso.
+  senhaProvisoria Boolean  @default(false)
+  criadoEm        DateTime @default(now())
+
+  sessions           Session[]
+  conversasAtendidas Conversa[]
+  mensagensEnviadas  Mensagem[]
+  atendimentos       AtendimentoRegistro[]
+
+  @@index([orgId, ativo])
+}
+
+model Session {
+  id       String   @id @default(cuid())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  expiraEm DateTime
+  criadoEm DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Instancia {
+  id    String @id @default(cuid())
+  org   Org    @relation(fields: [orgId], references: [id])
+  orgId String
+
+  /// Nome técnico na Evolution: `${org.slug}-${slug(nome)}`.
+  evolutionInstance String         @unique
+  nome              String
+  status            WhatsappStatus @default(DISCONNECTED)
+  numeroConectado   String?
+  ultimoEstadoEm    DateTime?
+  ultimoErro        String?
+  criadoEm          DateTime       @default(now())
+
+  conversas Conversa[]
+
+  @@unique([orgId, nome])
+  @@index([orgId, status])
+}
+
+model Lead {
+  id    String @id @default(cuid())
+  org   Org    @relation(fields: [orgId], references: [id])
+  orgId String
+
+  nome String
+  /// Só dígitos.
+  telefone String
+  /// Últimos 8 dígitos do telefone — coluna indexada para o match não varrer a tabela.
+  ultimos8      String
+  origem        String      @default("whatsapp")
+  estagio       LeadEstagio @default(novo)
+  motivoPerdido String?
+  observacao    String?
+  criadoEm      DateTime    @default(now())
+
+  conversas Conversa[]
+
+  @@index([orgId, ultimos8])
+  @@index([orgId, estagio])
+}
+
+model Conversa {
+  id          String    @id @default(cuid())
+  org         Org       @relation(fields: [orgId], references: [id])
+  orgId       String
+  instancia   Instancia @relation(fields: [instanciaId], references: [id], onDelete: Cascade)
+  instanciaId String
+
+  remoteJid String
+  /// Só dígitos; vazio quando o JID não expõe o número (@lid).
+  telefone  String
+  pushName  String?
+
+  lead        Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  leadId      String?
+  atendente   User?   @relation(fields: [atendenteId], references: [id], onDelete: SetNull)
+  atendenteId String?
+
+  interesse             ConversaInteresse @default(nao_classificado)
+  naoLidas              Int               @default(0)
+  ultimaMensagemEm      DateTime          @default(now())
+  ultimaMensagemPreview String            @default("")
+  criadoEm              DateTime          @default(now())
+
+  mensagens    Mensagem[]
+  atendimentos AtendimentoRegistro[]
+
+  @@unique([instanciaId, remoteJid])
+  @@index([orgId, ultimaMensagemEm])
+  @@index([leadId])
+}
+
+model Mensagem {
+  id         String   @id @default(cuid())
+  conversa   Conversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  conversaId String
+
+  /// key.id do WhatsApp — dedupe de reentrega do webhook.
+  waMessageId String          @unique
+  direcao     MensagemDirecao
+  autor       MensagemAutor
+  autorUser   User?           @relation(fields: [autorUserId], references: [id], onDelete: SetNull)
+  /// Nulo em OUT enviado pelo próprio aparelho.
+  autorUserId String?
+  texto       String
+  tipoMidia   String          @default("texto")
+  enviadaEm   DateTime        @default(now())
+  erro        String?
+
+  @@index([conversaId, enviadaEm])
+}
+
+/// Cadastro de atendimento: log append-only de quem classificou o quê.
+model AtendimentoRegistro {
+  id         String   @id @default(cuid())
+  org        Org      @relation(fields: [orgId], references: [id])
+  orgId      String
+  conversa   Conversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  conversaId String
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+
+  interesse  ConversaInteresse
+  observacao String?
+  criadoEm   DateTime          @default(now())
+
+  @@index([conversaId, criadoEm])
+}
