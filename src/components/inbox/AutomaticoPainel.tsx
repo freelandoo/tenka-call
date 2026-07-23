@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Botao, Campo, Card } from "@/components/ui/primitives";
+import { PlaybookEditor } from "@/components/inbox/PlaybookEditor";
 import type { InstanciaOpcao } from "@/components/inbox/InboxView";
 import type { IAProvedor } from "@prisma/client";
 
@@ -246,6 +247,8 @@ export function AutomaticoPainel({ instancias }: { instancias: InstanciaOpcao[] 
           {msg.texto}
         </p>
       )}
+
+      <PlaybookEditor instanciaId={instanciaId} />
     </div>
   );
 }
