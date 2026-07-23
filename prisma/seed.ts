@@ -19,16 +19,25 @@ async function main() {
     create: { slug, nome },
   });
 
+  // Idempotente e determinístico: rodar o seed (inclusive depois de reiniciar o
+  // banco) sempre deixa o admin com a senha do `SEED_ADMIN_SENHA` e pronto para
+  // entrar direto — sem forçar troca. Por isso o `update` também reescreve a senha.
+  const passwordHash = await hash(senha);
   await prisma.user.upsert({
     where: { login },
-    update: {},
+    update: {
+      passwordHash,
+      role: "ADMIN",
+      ativo: true,
+      senhaProvisoria: false,
+    },
     create: {
       orgId: org.id,
       login,
       nome: "Administrador",
       role: "ADMIN",
-      passwordHash: await hash(senha),
-      senhaProvisoria: true,
+      passwordHash,
+      senhaProvisoria: false,
     },
   });
 

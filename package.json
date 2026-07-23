@@ -13,7 +13,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma migrate reset --force"
+    "db:reset": "prisma migrate reset --force",
+    "db:test:migrate": "node -e \"require('dotenv').config({path:'.env.test'});require('child_process').execSync('prisma migrate deploy',{stdio:'inherit'})\""
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

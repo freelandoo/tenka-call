@@ -2,8 +2,25 @@ import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import type { Role } from "@prisma/client";
 
+/**
+ * Trava de segurança: `limparBanco` apaga TODAS as tabelas. Rodar contra o banco
+ * de dev/produção limpa dados reais (já aconteceu). O banco de teste tem "test"
+ * no nome (`tenka_test`, via `.env.test`); qualquer outro aborta a suíte inteira.
+ */
+function exigirBancoDeTeste(): void {
+  const url = process.env.DATABASE_URL ?? "";
+  const nomeBanco = url.split("/").pop()?.split("?")[0] ?? "";
+  if (!/test/i.test(nomeBanco)) {
+    throw new Error(
+      `limparBanco recusou: DATABASE_URL aponta para "${nomeBanco || "?"}", que não é um banco de teste. ` +
+        `Os testes exigem um banco com "test" no nome (veja .env.test). Abortando para não apagar dados reais.`,
+    );
+  }
+}
+
 /** A ordem respeita as chaves estrangeiras: filhas antes das pais. */
 export async function limparBanco(): Promise<void> {
+  exigirBancoDeTeste();
   await prisma.atendimentoRegistro.deleteMany();
   await prisma.mensagem.deleteMany();
   await prisma.conversa.deleteMany();
