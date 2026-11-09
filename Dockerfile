@@ -1,5 +1,6 @@
 # node:22-slim (glibc) em vez de alpine: é a base recomendada pelo Prisma.
-FROM node:22-slim AS prod
+# Versão EXATA do Node (segurança): etiqueta solta pegava o patch em cache do Railway. 22.23.4 = release de segurança de 2026-10-20.
+FROM node:22.23.4-slim AS prod
 
 WORKDIR /app
 
